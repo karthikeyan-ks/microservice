@@ -70,6 +70,7 @@ public class AuthService implements IAuthService {
         String encodedPassword = passwordEncoder.encode(userRequestDto.getPassword());
         user.setPassword(encodedPassword);
         Set<Role> roles = new HashSet<>();
+
         if (userRequestDto.getRoleIds() == null ||
                 userRequestDto.getRoleIds().isEmpty()) {
             throw new InvalidRoleException("No roles added");
