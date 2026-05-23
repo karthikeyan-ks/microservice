@@ -70,12 +70,12 @@ public class AuthService implements IAuthService {
         String encodedPassword = passwordEncoder.encode(userRequestDto.getPassword());
         user.setPassword(encodedPassword);
         Set<Role> roles = new HashSet<>();
-        if (userRequestDto.getRole_id() == null ||
-                userRequestDto.getRole_id().isEmpty()) {
+        if (userRequestDto.getRoleIds() == null ||
+                userRequestDto.getRoleIds().isEmpty()) {
             throw new InvalidRoleException("No roles added");
         }
 
-        for (Long roleId: userRequestDto.getRole_id()) {
+        for (Long roleId: userRequestDto.getRoleIds()) {
             Role role = roleRepository.findById(roleId)
                     .orElseThrow(
                     () -> new InvalidRoleException("Invalid role"));
