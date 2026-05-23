@@ -97,6 +97,4 @@ public class AuthService implements IAuthService {
         baseUserDto.setRoles(user.getRoles());
         return baseUserDto;
     }
-
-
 }
