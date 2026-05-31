@@ -9,12 +9,36 @@ permissions:
   contents: read
   id-token: write
 
+env:
+  IMAGE_NAME: myapp
+  REPOSITORY: myrepo
+  REGION: us-central1
+  CLUSTER_NAME: my-cluster
+  DEPLOYMENT_NAME: myapp
+  CONTAINER_NAME: myapp
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build Spring Boot Application
+        run: |
+          chmod +x mvnw || true
+          ./mvnw clean package -DskipTests
+
+      - name: Verify JAR Exists
+        run: |
+          ls -lah target/
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
@@ -27,24 +51,26 @@ jobs:
 
       - name: Configure Docker
         run: |
-          gcloud auth configure-docker us-central1-docker.pkg.dev
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-      - name: Build Image
+      - name: Build Docker Image
         run: |
-          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/myrepo/myapp:${{ github.sha }} .
+          docker build \
+            -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${IMAGE_NAME}:${{ github.sha }} .
 
-      - name: Push Image
+      - name: Push Docker Image
         run: |
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/myrepo/myapp:${{ github.sha }}
+          docker push \
+            ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${IMAGE_NAME}:${{ github.sha }}
 
       - name: Get GKE Credentials
         run: |
-          gcloud container clusters get-credentials my-cluster \
-            --region us-central1
+          gcloud container clusters get-credentials ${CLUSTER_NAME} \
+            --region ${REGION}
 
-      - name: Deploy
+      - name: Deploy to GKE
         run: |
-          kubectl set image deployment/myapp \
-            myapp=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/myrepo/myapp:${{ github.sha }}
+          kubectl set image deployment/${DEPLOYMENT_NAME} \
+            ${CONTAINER_NAME}=${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${IMAGE_NAME}:${{ github.sha }}
 
-          kubectl rollout status deployment/myapp
+          kubectl rollout status deployment/${DEPLOYMENT_NAME}
